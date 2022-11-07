@@ -1,7 +1,7 @@
 <template>
   <div class="container">
     <el-tree
-      :data="data"
+      :data="menus"
       :props="defaultProps"
       @node-click="handleNodeClick"
     ></el-tree>
@@ -12,10 +12,10 @@
 export default {
   data () {
     return {
-      data: [],
+      menus: [],
       defaultProps: {
         children: 'children',
-        label: 'label'
+        label: 'name'
       }
     }
   },
@@ -32,8 +32,9 @@ export default {
         //     'limit': this.pageSize,
         //     'roleName': this.dataForm.roleName
         //   })
-      }).then(({data}) => { // 成功了怎么办
-        console.log('成功获取到菜单数据', data)
+      }).then(({data}) => { // 请求成功
+        console.log('成功获取到菜单数据', data.data)
+        this.menus = data.data
       })
     }
   },
