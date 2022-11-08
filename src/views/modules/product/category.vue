@@ -7,6 +7,7 @@
              :default-expanded-keys="expandedKeys"
              draggable
              :allow-drop="allowDrop"
+             @node-drop="handleDrop"
     >
       <span class="custom-tree-node" slot-scope="{ node, data }">
         <span>{{ node.label }}</span>
@@ -67,6 +68,7 @@ export default {
       dialogType: '', // 为了复用对话框，edit或者append
       dialogTitle: '',
       maxDepth: 1, // 为了拖拽效果中，判断深度
+      updateNodes: [], // 拖拽效果中，需要修改的node的list
       defaultProps: {
         children: 'children',
         label: 'name'
@@ -240,6 +242,73 @@ export default {
             this.maxDepth = node.children[i].catLevel
           }
           this.countNodeLevel(node.children[i])
+        }
+      }
+    },
+    /**  拖拽数据收集 */
+    handleDrop (draggingNode, dropNode, dropType, ev) {
+      console.log('tree drop: ', draggingNode, dropNode, dropType)
+      // 所需要的所有信息都可以从dropNode中获取到
+      // 1. 当前拖拽节点最新的父节点id: 对于'prev'和 'next'父节点是dropNode的parent，'inner'父节点的id是dropNode
+      // 2. 当前拖拽节点的顺序：->'inner' 兄弟节点是dropNode的child;
+      // 3. 当前拖拽节点的level:当前的拖拽节点的层级发生变化的时候，所有子节点都需要发送改变
+      // 将要修改的node信息，封装到this.updateNodes数据中
+      let currentParentCid = 0
+      let siblings = null
+      if (dropType === 'inner') {
+        currentParentCid = dropNode.data.catId
+        siblings = dropNode.childNodes
+      } else {
+        // undefined是因为根节点的父节点是个数字，会返回个undefined
+        currentParentCid = dropNode.parent.data.catId === undefined ? 0 : dropNode.parent.data.catId
+        siblings = dropNode.parent.childNodes
+      }
+      // 2.遍历当前拖拽节点的父节点的所有子节点重新从0标记一下
+      for (let i = 0; i < siblings.length; i++) {
+        // 如果当前sibling的节点是拖拽的节点，还需要更改父节点信息parentCid (1)
+        if (siblings[i].data.catId === draggingNode.data.catId) {
+          let catLevel = draggingNode.level
+          // 当前节点的层级发生变化  (2)
+          if (siblings[i].level !== catLevel) {
+            // 当前节点的层级发生变化
+            catLevel = siblings[i].level
+            // 修改子节点的层级
+            this.updateChildNodeLevel(siblings[i])
+          }
+          // 改兄弟的顺序sort, 改变层级信息catLevel  (3)
+          this.updateNodes.push({catId: siblings[i].data.catId, sort: i, parentCid: currentParentCid, catLevel: catLevel})
+        } else {
+          this.updateNodes.push({catId: siblings[i].data.catId, sort: i})// 改兄弟的顺序
+        }
+      }
+      // 前端实现：发送http请求携带被修改的数据
+      this.$http({
+        url: this.$http.adornUrl('/product/category//update/sort'),
+        method: 'post',
+        data: this.$http.adornData(this.updateNodes, false)
+      }).then(({ data }) => {
+        this.$message({ // 顺序修改成功之后，弹出删除成功的弹框
+          message: `菜单顺序修改成功`,
+          type: 'success'
+        })
+        // 设置需要默认展开的node
+        this.expandedKeys = [currentParentCid]
+        // 前端需要刷新页面
+        this.getMenus()
+        // 清空拖拽的效果:之前保存数据的变量，应该变为默认值
+        this.updateNodes = []
+        this.maxDepth = 0
+      })
+      console.log('updateNodes:', this.updateNodes)
+    },
+    /** 递归关系节点的level */
+    updateChildNodeLevel (node) {
+      if (node.childNodes.length > 0) {
+        for (let i = 0; i < node.childNodes.length; i++) {
+          var childNode = node.childNodes[i].data // 真正的待更新的数据
+          this.updateNodes.push({catId: childNode.catId, catLevel: childNode.catLevel = node.childNodes[i].level})
+          // 递归处理子节点
+          this.updateChildNodeLevel(node.childNodes[i])
         }
       }
     }
