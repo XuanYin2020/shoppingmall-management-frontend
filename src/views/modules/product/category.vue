@@ -1,13 +1,25 @@
 <template>
   <div class="container">
+    <el-switch
+      v-model="draggable"
+      active-text="开启拖拽"
+      inactive-text="关闭拖拽">
+    </el-switch>
+    <el-button v-if="draggable" @click="batchSave">
+       批量保存
+    </el-button>
+    <el-button type="danger" @click="batchDelete">
+       批量删除
+    </el-button>
     <el-tree :data="menus" 
              show-checkbox node-key="catId" 
              :props="defaultProps"  
              :expand-on-click-node="false"
              :default-expanded-keys="expandedKeys"
-             draggable
+             :draggable="draggable"
              :allow-drop="allowDrop"
              @node-drop="handleDrop"
+             ref='menuTree'
     >
       <span class="custom-tree-node" slot-scope="{ node, data }">
         <span>{{ node.label }}</span>
@@ -69,6 +81,8 @@ export default {
       dialogTitle: '',
       maxDepth: 1, // 为了拖拽效果中，判断深度
       updateNodes: [], // 拖拽效果中，需要修改的node的list
+      currentParentCid: [], // 当前拖拽节点最新的父节点id
+      draggable: false, // 是否开启拖拽的效果，和switch开关绑定
       defaultProps: {
         children: 'children',
         label: 'name'
@@ -221,9 +235,9 @@ export default {
       console.log('draggingNode', draggingNode, dropNode, type)
       // 统计被拖动的当前节点总层数
       this.maxDepth = draggingNode.data.catLevel
-      this.countNodeLevel(draggingNode.data)
+      this.countNodeLevel(draggingNode)
       // 当前正在拖动的节点 + 父节点所在是的深度不大于3即可
-      let current = this.maxDepth - draggingNode.data.catLevel + 1
+      let current = Math.abs(this.maxDepth - draggingNode.level + 1)  // 在批量保存的情况下，使用的是真正的信息，而不是根据数据库中的信息进行的修改
       console.log('this.maxDepth', this.maxDepth)
       console.log('深度：', current)
       if (type === 'inner') {
@@ -236,12 +250,12 @@ export default {
     // 递归找到当前node下的最大深度
     countNodeLevel (node) {
       // 找到所有子节点，求出最大深度
-      if (node.children != null && node.children.length > 0) {
-        for (let i = 0; i < node.children.length; i++) {
-          if (node.children[i].catLevel > this.maxDepth) {
-            this.maxDepth = node.children[i].catLevel
+      if (node.childNodes != null && node.childNodes.length > 0) { // tree的真正子节点
+        for (let i = 0; i < node.childNodes.length; i++) {
+          if (node.childNodes[i].level > this.maxDepth) {
+            this.maxDepth = node.childNodes[i].level
           }
-          this.countNodeLevel(node.children[i])
+          this.countNodeLevel(node.childNodes[i])
         }
       }
     },
@@ -281,25 +295,7 @@ export default {
           this.updateNodes.push({catId: siblings[i].data.catId, sort: i})// 改兄弟的顺序
         }
       }
-      // 前端实现：发送http请求携带被修改的数据
-      this.$http({
-        url: this.$http.adornUrl('/product/category//update/sort'),
-        method: 'post',
-        data: this.$http.adornData(this.updateNodes, false)
-      }).then(({ data }) => {
-        this.$message({ // 顺序修改成功之后，弹出删除成功的弹框
-          message: `菜单顺序修改成功`,
-          type: 'success'
-        })
-        // 设置需要默认展开的node
-        this.expandedKeys = [currentParentCid]
-        // 前端需要刷新页面
-        this.getMenus()
-        // 清空拖拽的效果:之前保存数据的变量，应该变为默认值
-        this.updateNodes = []
-        this.maxDepth = 0
-      })
-      console.log('updateNodes:', this.updateNodes)
+      this.currentParentCid.push(currentParentCid)
     },
     /** 递归关系节点的level */
     updateChildNodeLevel (node) {
@@ -311,6 +307,61 @@ export default {
           this.updateChildNodeLevel(node.childNodes[i])
         }
       }
+    },
+    /** 批量的保存 */
+    batchSave () {
+      // 前端实现：发送http请求携带被修改的数据
+      this.$http({
+        url: this.$http.adornUrl('/product/category//update/sort'),
+        method: 'post',
+        data: this.$http.adornData(this.updateNodes, false)
+      }).then(({ data }) => {
+        this.$message({ // 顺序修改成功之后，弹出删除成功的弹框
+          message: `菜单顺序修改成功`,
+          type: 'success'
+        })
+        // 设置需要默认展开的node
+        this.expandedKeys = this.currentParentCid
+        // 前端需要刷新页面
+        this.getMenus()
+        // 清空拖拽的效果:之前保存数据的变量，应该变为默认值
+        this.updateNodes = []
+        this.maxDepth = 0
+        this.currentParentCid = []
+      })
+      console.log('updateNodes:', this.updateNodes)
+    },
+    /** 批量删除 */
+    batchDelete () {
+      let catId = []
+      let catName = []
+      // 找到选中的所有节点信息
+      let checkedNodes = this.$refs.menuTree.getCheckedNodes()
+      console.log('被选中的元素', checkedNodes)
+      // 遍历所有节点，获得id
+      for (let i = 0; i < checkedNodes.length; i++) {
+        catId.push(checkedNodes[i].catId)
+        catName.push(checkedNodes[i].name)
+      }
+      // 3. 弹出删除的提示框
+      this.$confirm(`是否批量删除: ${catName}?`, '提示', {
+        confirmButtonText: 'ok',
+        cancelButtonText: 'decline',
+        type: 'warning'
+      }).then(() => {
+        // 点击了ok之后，发送http的删除请求
+        this.$http({
+          url: this.$http.adornUrl('/product/category/delete'),
+          method: 'post',
+          data: this.$http.adornData(catId, false)
+        }).then(({ data }) => {
+          this.$message({ // 删除成功
+            message: `菜单批量删除成功`,
+            type: 'success'
+          })
+          this.getMenus()
+        })
+      }).catch(() => {})
     }
   },
   created () {
