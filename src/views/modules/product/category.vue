@@ -5,6 +5,8 @@
              :props="defaultProps"  
              :expand-on-click-node="false"
              :default-expanded-keys="expandedKeys"
+             draggable
+             :allow-drop="allowDrop"
     >
       <span class="custom-tree-node" slot-scope="{ node, data }">
         <span>{{ node.label }}</span>
@@ -64,6 +66,7 @@ export default {
       },
       dialogType: '', // 为了复用对话框，edit或者append
       dialogTitle: '',
+      maxDepth: 1, // 为了拖拽效果中，判断深度
       defaultProps: {
         children: 'children',
         label: 'name'
@@ -204,6 +207,40 @@ export default {
       }
       if (this.dialogType === 'edit') {
         this.editCategory()
+      }
+    },
+    /** 拖拽效果：
+     *  返回值：通过返回true或者false来判断能否被拖拽
+     *  输入：draggingNode指的是被拖拽的menu，dropNode是目标menu，
+     *        type指的是参数有三种情况：'prev'、'inner' 和 'next'，分别表示放置在目标节点前、插入至目标节点和放置在目标节点后
+     *  核心：总层级数不能超过3，即被拖动的当前节点总层数 + 所在的父节点外层层级数<=3
+     * */
+    allowDrop (draggingNode, dropNode, type) {
+      console.log('draggingNode', draggingNode, dropNode, type)
+      // 统计被拖动的当前节点总层数
+      this.maxDepth = draggingNode.data.catLevel
+      this.countNodeLevel(draggingNode.data)
+      // 当前正在拖动的节点 + 父节点所在是的深度不大于3即可
+      let current = this.maxDepth - draggingNode.data.catLevel + 1
+      console.log('this.maxDepth', this.maxDepth)
+      console.log('深度：', current)
+      if (type === 'inner') {
+        return (current + dropNode.level) <= 3
+      } else {
+        return (current + dropNode.parent.level) <= 3
+      }
+    },
+    /** 拖拽效果中的helper function */
+    // 递归找到当前node下的最大深度
+    countNodeLevel (node) {
+      // 找到所有子节点，求出最大深度
+      if (node.children != null && node.children.length > 0) {
+        for (let i = 0; i < node.children.length; i++) {
+          if (node.children[i].catLevel > this.maxDepth) {
+            this.maxDepth = node.children[i].catLevel
+          }
+          this.countNodeLevel(node.children[i])
+        }
       }
     }
   },
