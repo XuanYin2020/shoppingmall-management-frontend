@@ -18,11 +18,16 @@
       title="提示"
       :visible.sync="dialogVisible"
       width="30%"
-      :before-close="handleClose">
-      <span>这是一段信息</span>
+      >
+      <el-form :model="category">
+        <el-form-item label="Category Name">
+          <el-input v-model="category.name" autocomplete="off"></el-input>
+        </el-form-item>
+      </el-form>
+
       <span slot="footer" class="dialog-footer">
         <el-button @click="dialogVisible = false">取 消</el-button>
-        <el-button type="primary" @click="dialogVisible = false">确 定</el-button>
+        <el-button type="primary" @click="addCategory">确 定</el-button>
       </span>
     </el-dialog>
   </div>
@@ -35,6 +40,8 @@ export default {
       menus: [],
       expandedKeys: [], // 默认展开为空
       dialogVisible: false,
+      // form表单和该数据绑定，意味着表单的数据对象，也就是整个表单中的所有对象和谁绑定
+      category: {name: '', parentCid: 0, catLevel: 0, showStatus: 1, sort: 0}, // 包含若干新项目的数据
       defaultProps: {
         children: 'children',
         label: 'name'
@@ -57,11 +64,35 @@ export default {
         this.menus = data.data
       })
     },
-    // 发送请求实现
+    // 新增功能：发送请求实现
     append (data) {
+      this.dialogVisible = true
       console.log('append', data)
+      // 添加新的的item的信息，在category中的
+      this.category.parentCid = data.catId
+      this.category.catLevel = data.catLevel * 1 + 1
     },
-    // node是节点信息，data是数据信息
+    // 添加三级分类
+    addCategory () {
+      console.log('提交的数据', this.category)
+      this.$http({
+        url: this.$http.adornUrl('/product/category/save'),
+        method: 'post',
+        data: this.$http.adornData(this.category, false)
+      }).then(({ data }) => {
+        this.$message({ // 添加成功之后，弹出删除成功的弹框
+          message: `${this.category.name} Menu append successfully`,
+          type: 'success'
+        })
+        // 关闭对话框
+        this.dialogVisible = false
+        // 设置需要默认展开的node
+        this.expandedKeys = [this.category.parentCid]
+        // 前端需要刷新页面
+        this.getMenus()
+      })
+    },
+    // 删除功能：node是节点信息，data是数据信息
     remove (node, data) {
       // 3. 点击删除，先发送删除提示,弹出确认弹框
       this.$confirm(`It will delete the ${data.name} item, click the OK button to execute.`, '提示', {
@@ -81,10 +112,10 @@ export default {
             message: `${name} item delete successfully`,
             type: 'success'
           })
-          // 5. 设置需要默认展开的node
-          this.expandedKeys = [data.parent.data.catId]
           // 2. 前端需要刷新页面
           this.getMenus()
+          // 5. 设置需要默认展开的node
+          this.expandedKeys = [node.parent.data.catId]
         })
       }).catch(() => {
       })
