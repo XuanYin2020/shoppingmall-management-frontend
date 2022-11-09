@@ -2,7 +2,7 @@
   <div class="mod-config">
     <el-form :inline="true" :model="dataForm" @keyup.enter.native="getDataList()">
       <el-form-item>
-        <el-input v-model="dataForm.key" placeholder="参数名" clearable></el-input>
+        <el-input v-model="dataForm.key" placeholder="参数" clearable></el-input>
       </el-form-item>
       <el-form-item>
         <el-button @click="getDataList()">查询</el-button>
@@ -50,7 +50,21 @@
         prop="showStatus"
         header-align="center"
         align="center"
-        label="显示状态[0-不显示；1-显示]">
+        label="显示状态">
+        <!-- scope可以获取到 row, column, $index 和 store（table 内部的状态管理）的数据 -->
+        <template slot-scope="scope">
+          <!-- 开关绑定的值是这一列的显示状态，由scope获取 --> 
+          <!-- active-value前面要用冒号，绑定的是数字的1和0 --> 
+          <el-switch
+            v-model="scope.row.showStatus" 
+            active-color="#13ce66"
+            inactive-color="#ff4949"
+            :active-value="1"
+            :inactive-value="0"
+            @change="updateBrandStatus(scope.row)"
+            > <!--change是Events，去监听switch 状态发生变化。这里绑定了一个method去修改品牌的status --> 
+          </el-switch>
+        </template>
       </el-table-column>
       <el-table-column
         prop="firstLetter"
@@ -104,7 +118,7 @@
         totalPage: 0,
         dataListLoading: false,
         dataListSelections: [],
-        addOrUpdateVisible: false
+        addOrUpdateVisible: false // 维护是否显示弹窗（新增、修改）
       }
     },
     components: {
@@ -185,6 +199,22 @@
             } else {
               this.$message.error(data.msg)
             }
+          })
+        })
+      },
+      // 更新品牌的状态status
+      updateBrandStatus (data) {
+        console.log(data)
+        // 发送请求，修改状态
+        let sendData = {brandId: data.brandId, showStatus: (data.showStatus ? 1 : 0)}
+        this.$http({
+          url: this.$http.adornUrl('/product/brand/update'),
+          method: 'post',
+          data: this.$http.adornData(sendData, false)
+        }).then(({ data }) => {
+          this.$message({
+            type: 'success',
+            message: '状态更新成功'
           })
         })
       }
