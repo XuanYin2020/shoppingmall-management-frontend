@@ -206,13 +206,13 @@
           })
         })
       },
-      // 更新品牌的状态status
+      // 更新品牌的状态status,此时只需要id不为空和status不为空
       updateBrandStatus (data) {
         console.log(data)
         // 发送请求，修改状态
-        let sendData = {brandId: data.brandId, showStatus: (data.showStatus ? 1 : 0)}
+        let sendData = {brandId: data.brandId,showStatus: (data.showStatus ? 1 : 0)}
         this.$http({
-          url: this.$http.adornUrl('/product/brand/update'),
+          url: this.$http.adornUrl('/product/brand/update/status'),
           method: 'post',
           data: this.$http.adornData(sendData, false)
         }).then(({ data }) => {
