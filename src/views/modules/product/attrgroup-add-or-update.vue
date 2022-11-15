@@ -3,7 +3,7 @@
     :title="!dataForm.attrGroupId ? '新增' : '修改'"
     :close-on-click-modal="false"
     :visible.sync="visible">
-    <el-form :model="dataForm" :rules="dataRule" ref="dataForm" @keyup.enter.native="dataFormSubmit()" label-width="80px">
+    <el-form :model="dataForm" :rules="dataRule" ref="dataForm" @keyup.enter.native="dataFormSubmit()" label-width="100px">
     <el-form-item label="组名" prop="attrGroupName">
       <el-input v-model="dataForm.attrGroupName" placeholder="组名"></el-input>
     </el-form-item>
@@ -17,7 +17,14 @@
       <el-input v-model="dataForm.icon" placeholder="组图标"></el-input>
     </el-form-item>
     <el-form-item label="所属分类id" prop="catelogId">
-      <el-input v-model="dataForm.catelogId" placeholder="所属分类id"></el-input>
+      <!-- <el-input v-model="dataForm.catelogIds" placeholder="所属分类id"></el-input> -->
+      <!--v-model 绑定要提交的数据，options绑定选择菜单, props绑定选择框的参数-->
+      <el-cascader
+        v-model="dataForm.catelogIds"
+        :options="categories"
+        @change="handleChange"
+        :props="Props"
+        ></el-cascader>
     </el-form-item>
     </el-form>
     <span slot="footer" class="dialog-footer">
@@ -32,13 +39,18 @@
     data () {
       return {
         visible: false,
+        categories:[],//内容是向服务器要过来的,展示的数据
+        Props:{value:"catId",
+               label:"name",
+               children:"children"},//设置属性,规范格式
         dataForm: {
           attrGroupId: 0,
           attrGroupName: '',
           sort: '',
           descript: '',
           icon: '',
-          catelogId: ''
+          catelogIds: [], //最终会绑定一个数组,//保存父节点和子节点的id
+          catelogId:0 //最终提交一个string，即catelogIds最后一个//保存要提交的子节点的id
         },
         dataRule: {
           attrGroupName: [
@@ -60,6 +72,19 @@
       }
     },
     methods: {
+      getCategories(){
+        this.$http({
+        url: this.$http.adornUrl('/product/category/list/tree'), // 请求的地址
+        method: 'get'
+        }).then(({data}) => { // 请求成功
+          console.log('成功获取到菜单数据', data.data)
+          this.categories = data.data
+        })
+      },
+      handleChange(value) {
+        console.log(value);
+      },
+      //
       init (id) {
         this.dataForm.attrGroupId = id || 0
         this.visible = true
@@ -95,7 +120,7 @@
                 'sort': this.dataForm.sort,
                 'descript': this.dataForm.descript,
                 'icon': this.dataForm.icon,
-                'catelogId': this.dataForm.catelogId
+                'catelogId': this.dataForm.catelogIds[this.dataForm.catelogIds.length-1]//最终提交一个string，即catelogIds最后一个
               })
             }).then(({data}) => {
               if (data && data.code === 0) {
@@ -105,7 +130,7 @@
                   duration: 1500,
                   onClose: () => {
                     this.visible = false
-                    this.$emit('refreshDataList')
+                    this.$emit('refreshDataList') //子组件提交了一个事件，
                   }
                 })
               } else {
@@ -115,6 +140,10 @@
           }
         })
       }
+    },
+    //生命周期-在创建的时候就要到
+    created(){
+      this.getCategories()
     }
   }
 </script>
