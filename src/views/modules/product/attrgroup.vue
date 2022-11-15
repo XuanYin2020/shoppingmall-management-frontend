@@ -145,6 +145,7 @@ import AddOrUpdate from './attrgroup-add-or-update';
 export default {
   data() {
     return {
+      catId: 0, //从子组件category中获得到点击的三级分类的项目
       dataForm: {
         key: "",
       },
@@ -163,16 +164,21 @@ export default {
     this.getDataList();
   },
   methods: {
+    // 感知树节点被点击(三级分类被点击的时候)
     // 父组件接收事件:methods中新增treenodeclick方法，验证父组件是否接收到
     treeNodeClick(data,node,component){ //发三个参数，接收到三个参数
         console.log("attrgroup感知到category的节点被点击：",data, node, component);
         console.log("刚才被点击的菜单名字", data.name);
+        if(node.level == 3){
+          this.catId = data.catId
+          this.getDataList();//重新查询获取列表
+        }
     },
     // 获取数据列表
     getDataList() {
       this.dataListLoading = true;
       this.$http({
-        url: this.$http.adornUrl("/product/attrgroup/list"),
+        url: this.$http.adornUrl(`/product/attrgroup/list/${this.catId}`),
         method: "get",
         params: this.$http.adornParams({
           page: this.pageIndex,
