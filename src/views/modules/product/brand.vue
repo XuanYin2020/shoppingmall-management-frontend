@@ -146,7 +146,7 @@
         }).then(({data}) => {
           if (data && data.code === 0) {
             this.dataList = data.page.list
-            this.totalPage = data.page.totalCount
+            this.totalPage = data.page.totalCount //分页数据显示错误
           } else {
             this.dataList = []
             this.totalPage = 0

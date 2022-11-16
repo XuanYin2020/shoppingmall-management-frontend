@@ -20,7 +20,7 @@
               ></el-input>
             </el-form-item>
             <el-form-item>
-              <el-button @click="getDataList()">查询</el-button>
+              <el-button @click="getDataList()">查询</el-button> <!-- v-if="catId!=0"  -->
               <el-button
                 v-if="isAuth('product:attrgroup:save')"
                 type="primary"
