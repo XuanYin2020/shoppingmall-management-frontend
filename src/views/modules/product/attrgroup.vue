@@ -211,11 +211,11 @@ export default {
     selectionChangeHandle(val) {
       this.dataListSelections = val;
     },
-    // 新增 / 修改
+    // 新增(不会传入参数id) / 修改(传入了参数id)
     addOrUpdateHandle(id) {
       this.addOrUpdateVisible = true;
-      this.$nextTick(() => {
-        this.$refs.addOrUpdate.init(id);
+      this.$nextTick(() => {//nextTick目的是当上面的组件渲染完毕之后，再调用下面的方法
+        this.$refs.addOrUpdate.init(id);//调用当前vue下的组件addOrUpdate
       });
     },
     // 删除

@@ -17,10 +17,10 @@
       <el-input v-model="dataForm.icon" placeholder="组图标"></el-input>
     </el-form-item>
     <el-form-item label="所属分类id" prop="catelogId">
-      <!-- <el-input v-model="dataForm.catelogIds" placeholder="所属分类id"></el-input> -->
+      <!-- <el-input v-model="dataForm.catelogPath" placeholder="所属分类id"></el-input> -->
       <!--v-model 绑定要提交的数据，options绑定选择菜单, props绑定选择框的参数-->
       <el-cascader
-        v-model="dataForm.catelogIds"
+        v-model="dataForm.catelogPath"
         :options="categories"
         @change="handleChange"
         :props="Props"
@@ -49,8 +49,8 @@
           sort: '',
           descript: '',
           icon: '',
-          catelogIds: [], //最终会绑定一个数组,//保存父节点和子节点的id
-          catelogId:0 //最终提交一个string，即catelogIds最后一个//保存要提交的子节点的id
+          catelogPath: [], //最终会绑定一个数组,保存父节点和子节点的id
+          catelogId:0 //最终提交一个string，即catelogPath最后一个//保存要提交的子节点的id
         },
         dataRule: {
           attrGroupName: [
@@ -102,6 +102,8 @@
                 this.dataForm.descript = data.attrGroup.descript
                 this.dataForm.icon = data.attrGroup.icon
                 this.dataForm.catelogId = data.attrGroup.catelogId
+                //查出catelogId的完整路径
+                this.dataForm.catelogPath = data.attrGroup.catelogPath;
               }
             })
           }
@@ -120,7 +122,7 @@
                 'sort': this.dataForm.sort,
                 'descript': this.dataForm.descript,
                 'icon': this.dataForm.icon,
-                'catelogId': this.dataForm.catelogIds[this.dataForm.catelogIds.length-1]//最终提交一个string，即catelogIds最后一个
+                'catelogId': this.dataForm.catelogPath[this.dataForm.catelogPath.length-1]//最终提交一个string，即catelogPath最后一个
               })
             }).then(({data}) => {
               if (data && data.code === 0) {
