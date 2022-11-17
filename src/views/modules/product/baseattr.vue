@@ -47,9 +47,10 @@
               <i class="el-icon-error" v-else></i>
             </template>
           </el-table-column>
-          <el-table-column prop="valueType" header-align="center" align="center" label="值类型">
+          <el-table-column prop="searchType" header-align="center" align="center" label="值类型">
             <template slot-scope="scope">
-              <el-tag type="success" v-if="scope.row.valueType==0">单选</el-tag>
+              <!-- 解决：将baseattr.vue和attr-add-or-update.vue里的全部valueType改成searchType，此时值类型正常显示 -->
+              <el-tag type="success" v-if="scope.row.searchType==0">单选</el-tag>
               <el-tag v-else>多选</el-tag>
             </template>
           </el-table-column>
