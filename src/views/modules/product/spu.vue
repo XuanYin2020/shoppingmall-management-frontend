@@ -13,7 +13,7 @@
             <el-select style="width:160px" v-model="dataForm.status" clearable>
               <el-option label="新建" :value="0"></el-option>
               <el-option label="上架" :value="1"></el-option>
-              <el-option label="下架" :value="2"></el-option>
+              <el-option label="下架" :value="2"></el-option><!--和数据库的字段要对应起来-->
             </el-select>
           </el-form-item>
           <el-form-item label="检索">
@@ -37,6 +37,7 @@
 import CategoryCascader from "../common/category-cascader";
 import BrandSelect from "../common/brand-select";
 import Spuinfo from "./spuinfo";
+import PubSub from 'pubsub-js';
 export default {
   //import引入的组件需要注入到对象中才能使用
   components: { CategoryCascader, Spuinfo, BrandSelect },
@@ -65,7 +66,7 @@ export default {
   methods: {
     searchSpuInfo() {
       console.log("搜索条件", this.dataForm);
-      this.PubSub.publish("dataForm",this.dataForm);
+      PubSub.publish("dataForm",this.dataForm);
     }
   },
   //生命周期 - 创建完成（可以访问当前this实例）
